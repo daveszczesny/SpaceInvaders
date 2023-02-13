@@ -10,7 +10,7 @@ import javax.swing.*;
 public class Sprite2D {
 
     protected int x, y;
-    protected double xSpeed = 0;
+    protected double xSpeed = 15;
     protected Image image;
 
     public Sprite2D(ImageIcon image) {

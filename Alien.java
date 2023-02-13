@@ -9,7 +9,7 @@ public class Alien extends Sprite2D {
 
     // static variables (allow aliens to move in unison)
     private static int direction = 1;
-    private static int xSpeed = 0;
+    private static int xSpeed = 15;
 
     private int counter = 0;
 
@@ -22,10 +22,15 @@ public class Alien extends Sprite2D {
         // inherits sprite2D
         super(images[0]);
         // setting static variable speed
-        Alien.xSpeed = 10 * Alien.direction;
+        Alien.xSpeed *= Alien.direction;
     }
 
     public void move() {
+
+        if(this.y < 0){
+           
+        }
+
         this.x += (xSpeed * direction);
     }
 

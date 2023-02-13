@@ -15,7 +15,6 @@ public class Spaceship extends Sprite2D{
     public Spaceship(ImageIcon image, Dimension WindowSize){
         super(image);
         this.setPosition(WindowSize.width / 2, WindowSize.height - 80);
-        this.xSpeed = 5;
     }
 
     // method controlled by keybinds

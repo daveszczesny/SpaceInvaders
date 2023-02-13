@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.awt.image.*;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /*
  * Assignment 3
@@ -19,6 +21,7 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
     private static final Dimension WindowSize = new Dimension(800, 600);
 
     private Alien[] alienArray = new Alien[30];
+    private ArrayList<PlayerBullet> bullets = new ArrayList<>();
     private Spaceship spaceship;
 
     private BufferStrategy strategy;
@@ -40,38 +43,42 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
 
     }
 
-    public void createEntities()
-    {   
+    public void createEntities() {
         int j = 0;
-        for(int i =0; i < alienArray.length; i++){
-            if (i%6 == 0){
+        for (int i = 0; i < alienArray.length; i++) {
+            if (i % 6 == 0) {
                 j++;
             }
             alienArray[i] = new Alien();
             alienArray[i].setPosition(
-                (i%6)*60,
-                 (j*60) + 20);
+                    (i % 6) * 60,
+                    (j * 60) + 20);
         }
-
 
         spaceship = new Spaceship(new ImageIcon("res/player_ship.png"), WindowSize);
     }
 
     // keyListener
     public void keyPressed(KeyEvent e) {
-            if(e.getKeyCode() == KeyEvent.VK_LEFT){
-                this.spaceship.setDirection(-1);
-            }
-            if(e.getKeyCode() == KeyEvent.VK_RIGHT){
-                this.spaceship.setDirection(1);
-            }
+        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+            this.spaceship.setDirection(-1);
+        }
+        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            this.spaceship.setDirection(1);
+        }
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            // create Bullet entity
+            PlayerBullet bullet = new PlayerBullet(this.spaceship);
+            bullets.add(bullet);
+
+        }
 
     }
 
     // listens for when a key is released
     // undoes keyPressed events
     public void keyReleased(KeyEvent e) {
-        if(e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT){
+        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT) {
             this.spaceship.setDirection(0);
         }
     }
@@ -81,16 +88,32 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
 
     // Game loop
     public void run() {
+
         while (true) {
             this.repaint();
-            for(Alien alien: alienArray){
+            for (Alien alien : alienArray) {
+                if (alien == null)
+                    continue;
+
                 alien.swapImage();
-                if(alien.x < 0 || alien.x +50 > 800){
+                if (alien.x < 0 || alien.x + 50 > 800) {
                     alien.reverseDirection();
-                    for(Alien a: alienArray){
+                    for (Alien a : alienArray) {
                         a.y += 2;
                     }
                 }
+
+                Iterator<PlayerBullet> iterator = bullets.iterator();
+
+                while (iterator.hasNext()) {
+                    PlayerBullet bullet = iterator.next();
+                    if ((alien.x < bullet.x && alien.x + 50 > bullet.x) &&
+                            (alien.y < bullet.y && alien.y + 50 > bullet.y)) {
+                        
+                        iterator.remove();
+                    }
+                }
+
             }
 
             try {
@@ -111,10 +134,13 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             g.setColor(Color.black);
             g.fillRect(0, 0, WindowSize.width, WindowSize.height);
 
-            for(Alien alien: alienArray){
+            for (Alien alien : alienArray) {
                 alien.paint(g);
             }
             spaceship.paint(g);
+            for (PlayerBullet bullet : bullets) {
+                bullet.paint(g);
+            }
 
             strategy.show();
         } catch (NullPointerException e) {
