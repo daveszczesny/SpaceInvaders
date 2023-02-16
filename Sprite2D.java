@@ -13,6 +13,8 @@ public class Sprite2D {
     protected double xSpeed = 15;
     protected Image image;
 
+    protected boolean isVisible = true;
+
     public Sprite2D(ImageIcon image) {
         this.image = image.getImage();
     }
@@ -30,15 +32,36 @@ public class Sprite2D {
 
     }
 
-    protected void setImage(ImageIcon image){
+    protected int[] getImageDimension() {
+        int[] imageDimension = {
+                this.image.getWidth(null),
+                this.image.getHeight(null)
+        };
+        return imageDimension;
+    }
+
+    protected void setImage(ImageIcon image) {
         this.image = image.getImage();
     }
 
+    public Rectangle getBounds() {
+        return new Rectangle(x, y, getImageDimension()[0], getImageDimension()[1]);
+    }
+
+    public Image getImage() {
+        return image;
+    }
+
+    public void setVisible(boolean foo) {
+        isVisible = foo;
+    }
 
     // moves and paints sprite to screen
     protected void paint(Graphics g) {
-        this.move();
-        g.drawImage(this.image, x, y, null);
+        if (isVisible) {
+            this.move();
+            g.drawImage(this.image, x, y, null);
+        }
     }
 
 }

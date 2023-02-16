@@ -1,5 +1,4 @@
-
-import javax.swing.ImageIcon;
+import javax.swing.*;
 
 public class PlayerBullet extends Sprite2D{
     
@@ -8,12 +7,15 @@ public class PlayerBullet extends Sprite2D{
 
     public PlayerBullet(Spaceship player){
         super(image);
-        this.setPosition(player.x+25, player.y);
+        this.setPosition(player.x 
+            + (int)(player.image.getWidth(null)/2),
+             player.y);
     }
 
     public void move(){
         this.y -= this.xSpeed;
     }
 
+  
 
 }
