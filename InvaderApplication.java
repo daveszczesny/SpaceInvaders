@@ -8,20 +8,21 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.awt.image.*;
+import java.util.ArrayList;
 
 /*
- * Assignment 3
- * Starting Space invaders
+ * Finishing Space invaders
  */
 public class InvaderApplication extends JFrame implements Runnable, KeyListener {
 
     // game states
     enum GameState {
-        MENU, GAME, INFO
+        MENU, GAME
     }
 
     // constants
     private static final Dimension WindowSize = new Dimension(800, 600);
+    private final int MAX_ALIENS = 30;
     private Alien[] alienArray;
     private Spaceship spaceship;
     private Graphics offscreenGraphics;
@@ -70,7 +71,7 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             alien.swapImage();
         }
 
-        if (minx < 0 || maxx > 800) {
+        if (minx < 0 || maxx > WindowSize.getWidth()) {
             Alien.reverseDirection();
             for (Alien alien : alienArray)
                 alien.y += Alien.yJump;
@@ -80,13 +81,17 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
         if (newWave) {
             // gerernateWave -> speed of aliens, speed function = 20 log(level) + 15, 15 =
             // starting speed
+            if(spaceship.getBulletsRemaining() > 0){
+                spaceship.incrementScore(spaceship.getBulletsRemaining() * 10);
+            }
+
             spaceship.setLevel(spaceship.getLevel() + 1);
-            gerernateWave((int)Math.log(spaceship.getLevel()) * 20 + 15);
+            gerernateWave((int) Math.log(spaceship.getLevel()) * 20 + 15);
         }
     }
 
     public void gerernateWave(int speed) {
-        alienArray = new Alien[30];
+        alienArray = new Alien[MAX_ALIENS];
         int j = 0;
         for (int i = 0; i < alienArray.length; i++) {
             if (i % 6 == 0) {
@@ -94,27 +99,18 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             }
             alienArray[i] = new Alien(WindowSize);
             alienArray[i].setPosition(
-                    (i % 6) * 60 + 200,
+                    (i % 6) * 60,
                     (j * 60));
         }
         Alien.setSpeed(speed);
+
+        spaceship.bullets = new ArrayList<PlayerBullet>();
     }
 
     public void createEntities() {
-        alienArray = new Alien[30];
-        int j = 0;
-        for (int i = 0; i < alienArray.length; i++) {
-            if (i % 6 == 0) {
-                j++;
-            }
-            alienArray[i] = new Alien(WindowSize);
-            alienArray[i].setPosition(
-                    (i % 6) * 60 + 200,
-                    (j * 60));
-        }
         spaceship = new Spaceship(new ImageIcon("res/player_ship.png"), WindowSize);
+        gerernateWave((int) Math.log(spaceship.getLevel()) * 20 + 15);
     }
-
 
     // Game loop
     public void run() {
@@ -132,7 +128,6 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             this.repaint();
         }
     }
-
 
     // keyListener
     public void keyPressed(KeyEvent e) {
@@ -176,7 +171,8 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             if (!alien.isVisible)
                 continue;
             if (spaceship_rect.intersects(alien_rect)) {
-                System.out.println("Player dies");
+                spaceship.setVisible(false);
+                state = GameState.MENU;
             }
             for (PlayerBullet bullet : spaceship.bullets) {
                 if (!bullet.isVisible)
@@ -185,12 +181,16 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
                 if (bullet_rect.intersects(alien_rect)) {
                     bullet.setVisible(false);
                     alien.setVisible(false);
+                    spaceship.incrementScore();
                 }
             }
         }
     }
 
     public void game_paint(Graphics g) {
+        g = offscreenGraphics;
+        g.setColor(Color.black);
+        g.fillRect(0, 0, WindowSize.width, WindowSize.height);
         for (Alien alien : alienArray) {
             alien.paint(g);
         }
@@ -198,41 +198,50 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
         for (PlayerBullet bullet : spaceship.bullets) {
             bullet.paint(g);
         }
+
+        g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 20));
+        g.setColor(Color.WHITE);
+        g.drawString("Wave: " + (spaceship.getLevel() + 1), 10, 60);
+        g.drawString("Score: " + spaceship.getScore(), 10, 80);
+        g.drawString("Best: ", 10, 100);
+
+        g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 13));
+        g.drawString("Bullets remaining: " + spaceship.getBulletsRemaining(), 10,
+                (int) (WindowSize.getHeight() * .97));
+
+        strategy.show();
     }
 
-    // Game graphics
+    public void menu_paint(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, WindowSize.width, WindowSize.height);
+        g.setColor(Color.white);
+        g.setFont(
+                new Font(g.getFont().getName(),
+                        Font.PLAIN, 100));
+        g.drawString("MENU", (int) WindowSize.getWidth() / 2 - 150,
+                (int) (WindowSize.getHeight() * .3));
+        g.setFont(
+                new Font(g.getFont().getName(),
+                        Font.PLAIN, 15));
+        g.drawString("Press [SPACE] key to play", (int) WindowSize.getWidth() / 2 - 90,
+                (int) (WindowSize.getHeight() * .35));
+        g.drawString("[Arrow keys to move, space to shoot]", (int) WindowSize.getWidth() / 2 - 150,
+                (int) (WindowSize.getHeight() * .4));
+    }
+
+    // Paint method
     public void paint(Graphics g) {
 
         try {
 
             if (state == GameState.GAME) {
-
-                g = offscreenGraphics;
-                g.setColor(Color.black);
-                g.fillRect(0, 0, WindowSize.width, WindowSize.height);
                 game_paint(g);
 
-                strategy.show();
             } else if (state == GameState.MENU) {
-                g.setColor(Color.BLACK);
-                g.fillRect(0, 0, WindowSize.width, WindowSize.height);
-                g.setColor(Color.white);
-                g.setFont(
-                        new Font(g.getFont().getName(),
-                                Font.PLAIN, 100));
-                g.drawString("MENU", (int) WindowSize.getWidth() / 2 - 150,
-                        (int) (WindowSize.getHeight() * .3));
-                g.setFont(
-                        new Font(g.getFont().getName(),
-                                Font.PLAIN, 15));
-                g.drawString("Press [SPACE] key to play", (int) WindowSize.getWidth() / 2 - 90,
-                        (int) (WindowSize.getHeight() * .35));
-                g.drawString("[Arrow keys to move, space to shoot]", (int) WindowSize.getWidth() / 2 - 150,
-                        (int) (WindowSize.getHeight() * .4));
+                menu_paint(g);
 
             }
-
-            // game_paint(g);
 
         } catch (NullPointerException e) {
             repaint();
