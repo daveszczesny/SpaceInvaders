@@ -52,8 +52,8 @@ public class Sprite2D {
         return image;
     }
 
-    public void setVisible(boolean foo) {
-        isVisible = foo;
+    public void setVisible(boolean visibility) {
+        isVisible = visibility;
     }
 
     // moves and paints sprite to screen

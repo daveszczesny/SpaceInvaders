@@ -9,6 +9,7 @@ import java.awt.event.*;
 import javax.swing.*;
 import java.awt.image.*;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 
 /*
  * Finishing Space invaders
@@ -17,11 +18,12 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
 
     // game states
     enum GameState {
-        MENU, GAME
+        MENU, GAME, PAUSED
     }
 
     // constants
     private static final Dimension WindowSize = new Dimension(800, 600);
+    private static int bestScore = 0;
     private final int MAX_ALIENS = 30;
     private Alien[] alienArray;
     private Spaceship spaceship;
@@ -78,10 +80,14 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
         }
 
         checkCollisions();
+
+        if(bestScore < spaceship.getScore())
+            bestScore = spaceship.getScore();
+
         if (newWave) {
             // gerernateWave -> speed of aliens, speed function = 20 log(level) + 15, 15 =
             // starting speed
-            if(spaceship.getBulletsRemaining() > 0){
+            if (spaceship.getBulletsRemaining() > 0) {
                 spaceship.incrementScore(spaceship.getBulletsRemaining() * 10);
             }
 
@@ -142,13 +148,22 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 // create Bullet entity
                 spaceship.shoot();
-
             }
+
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                state = GameState.PAUSED;
+            }
+
         } else if (state == GameState.MENU) {
             if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                 createEntities();
                 state = GameState.GAME;
             }
+        } else if (state == GameState.PAUSED) {
+            if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                state = GameState.GAME;
+            }
+
         }
 
     }
@@ -156,8 +171,10 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
     // listens for when a key is released
     // undoes keyPressed events
     public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            this.spaceship.setDirection(0);
+        if (state == GameState.GAME) {
+            if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                this.spaceship.setDirection(0);
+            }
         }
     }
 
@@ -165,26 +182,31 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
     }
 
     private void checkCollisions() {
-        Rectangle spaceship_rect = spaceship.getBounds();
-        for (Alien alien : alienArray) {
-            Rectangle alien_rect = alien.getBounds();
-            if (!alien.isVisible)
-                continue;
-            if (spaceship_rect.intersects(alien_rect)) {
-                spaceship.setVisible(false);
-                state = GameState.MENU;
-            }
-            for (PlayerBullet bullet : spaceship.bullets) {
-                if (!bullet.isVisible)
+        try{
+            Rectangle spaceship_rect = spaceship.getBounds();
+            for (Alien alien : alienArray) {
+                Rectangle alien_rect = alien.getBounds();
+                if (!alien.isVisible)
                     continue;
-                Rectangle bullet_rect = bullet.getBounds();
-                if (bullet_rect.intersects(alien_rect)) {
-                    bullet.setVisible(false);
-                    alien.setVisible(false);
-                    spaceship.incrementScore();
+                if (spaceship_rect.intersects(alien_rect)) {
+                    spaceship.setVisible(false);
+                    state = GameState.MENU;
+                }
+                for (PlayerBullet bullet : spaceship.bullets) {
+                    if (!bullet.isVisible)
+                        continue;
+                    Rectangle bullet_rect = bullet.getBounds();
+                    if (bullet_rect.intersects(alien_rect)) {
+                        bullet.setVisible(false);
+                        alien.setVisible(false);
+                        spaceship.incrementScore();
+                    }
                 }
             }
+        }catch(ConcurrentModificationException e){
+            return;
         }
+        
     }
 
     public void game_paint(Graphics g) {
@@ -203,11 +225,15 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
         g.setColor(Color.WHITE);
         g.drawString("Wave: " + (spaceship.getLevel() + 1), 10, 60);
         g.drawString("Score: " + spaceship.getScore(), 10, 80);
-        g.drawString("Best: ", 10, 100);
+        g.drawString("Best: " + bestScore, 10, 100);
 
         g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 13));
         g.drawString("Bullets remaining: " + spaceship.getBulletsRemaining(), 10,
                 (int) (WindowSize.getHeight() * .97));
+
+        g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 11));
+        g.drawString("[ESCAPE] to pause", (int) (WindowSize.getWidth() * .85),
+                (int) (WindowSize.getHeight() * .1));
 
         strategy.show();
     }
@@ -228,6 +254,31 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
                 (int) (WindowSize.getHeight() * .35));
         g.drawString("[Arrow keys to move, space to shoot]", (int) WindowSize.getWidth() / 2 - 150,
                 (int) (WindowSize.getHeight() * .4));
+        g.drawString("[Press ESCAPE to pause game]", (int) WindowSize.getWidth() / 2 - 120,
+                (int) (WindowSize.getHeight() * .45));
+    }
+
+    public void paused_paint(Graphics g) {
+        g = offscreenGraphics;
+        g.setColor(Color.black);
+        g.fillRect(0, 0, WindowSize.width, WindowSize.height);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 75));
+        g.drawString("Game Paused", (int) WindowSize.getWidth() / 5,
+                (int) (WindowSize.getHeight() * .3));
+
+        g.setFont(new Font(g.getFont().getName(), Font.PLAIN, 15));
+
+        // showing current game stats
+        g.drawString("Current score: " + spaceship.getScore(), (int) (WindowSize.getWidth() * .1),
+                (int) (WindowSize.getHeight() * .4));
+        g.drawString("Bullets remaining: " + spaceship.getBulletsRemaining(), (int) (WindowSize.getWidth() * .1),
+                (int) (WindowSize.getHeight() * .43));
+        g.drawString("Current wave: " + (spaceship.getLevel()+1), (int) (WindowSize.getWidth() * .1),
+                (int) (WindowSize.getHeight() * .46));
+
+        strategy.show();
     }
 
     // Paint method
@@ -241,6 +292,8 @@ public class InvaderApplication extends JFrame implements Runnable, KeyListener 
             } else if (state == GameState.MENU) {
                 menu_paint(g);
 
+            } else if (state == GameState.PAUSED) {
+                paused_paint(g);
             }
 
         } catch (NullPointerException e) {

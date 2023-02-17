@@ -14,12 +14,14 @@ public class Spaceship extends Sprite2D {
     private int level = 0;
     private int score = 0;
     private int maxBullets = 100;
+    private Dimension WindowSize;
 
     // constructor
     // sets initial player position, and speed
     public Spaceship(ImageIcon image, Dimension WindowSize) {
         super(image);
-        this.setPosition(WindowSize.width / 2, WindowSize.height - 80);
+        this.setPosition(WindowSize.width / 2, WindowSize.height - 50);
+        this.WindowSize = WindowSize;
     }
 
     // method controlled by keybinds
@@ -28,7 +30,14 @@ public class Spaceship extends Sprite2D {
     }
 
     public void move() {
+        
+        if(this.x + this.image.getWidth(null) >= WindowSize.width)
+            this.x -= 15;
+        else if(this.x <= 0)
+            this.x += 15;
+        
         this.x += (this.xSpeed * direction);
+        
     }
 
     public int getBulletsRemaining() {
